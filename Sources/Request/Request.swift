@@ -8,20 +8,20 @@
 import Foundation
 import Combine
 
-enum HTTPMethod: String {
+public enum HTTPMethod: String {
     case get = "GET"
     case post = "POST"
     case put = "PUT"
 }
 
-enum RequestError: Error {
+public enum RequestError: Error {
     case nonHTTPResponse
     case serverFailure(Int)
     case wrongContentType
     case parseError
 }
 
-extension Error {
+public extension Error {
     var transientNetworkError: Bool {
         let error = self as NSError
         guard error.domain == NSURLErrorDomain else { return false }
@@ -45,10 +45,9 @@ extension Error {
     }
 }
 
-var RequestBaseURL: URL?
-var RequestLogError: ((String, _: [String: Any]?) -> Void)?
+public var RequestLogError: ((String, _: [String: Any]?) -> Void)?
 
-protocol Request {
+public protocol Request {
     associatedtype ContextType
     associatedtype ModelType
 
@@ -68,14 +67,14 @@ protocol Request {
     func parseResponse(context: ContextType?, data: Data) throws -> ModelType
 }
 
-protocol RequestSession {
+public protocol RequestSession {
     func dataTask(with request: URLRequest) -> URLSessionDataTask
     func dataTask(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
 }
 
 extension URLSession: RequestSession {}
 
-extension Request {
+public extension Request {
     var method: HTTPMethod { .get }
     var scheme: String { "https" }
     var queryItems: [URLQueryItem] { [] }
@@ -216,13 +215,13 @@ extension Request {
     }
 }
 
-extension Request where ContextType: Scheduler {
+public extension Request where ContextType: Scheduler {
     func start(context: ContextType) -> AnyPublisher<ModelType, Error> {
         start(on: context, context: context)
     }
 }
 
-extension Request {
+public extension Request {
     func encode<T: Encodable>(_ object: T) throws -> Data {
         let encoder = JSONEncoder()
 #if DEBUG
@@ -246,7 +245,7 @@ fileprivate let iso8601WithMilliseconds: ISO8601DateFormatter = {
     return formatter
 }()
 
-extension Request {
+public extension Request {
     func decode<T: Decodable>(_ jsonType: T.Type, from data: Data) throws -> T {
 #if DEBUG
         if let string = String(data: data, encoding: .utf8) {

@@ -7,10 +7,10 @@
 
 import Foundation
 
-class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
-    static var shared = RequestTaskManager()
+open class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
+    public static var shared = RequestTaskManager()
 
-    var session: RequestSession!
+    public var session: RequestSession!
     private var activeRequests = [URLSessionTask: ProgressiveResponse]()
 
     override private init() {
@@ -22,7 +22,7 @@ class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
         activeRequests[task] = request
     }
 
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         guard var request = activeRequests[dataTask] else {
             RequestLogError?("Callback for untracked task", ["url": "\(dataTask.originalRequest?.url?.absoluteString ?? "nil")"])
             return
@@ -32,7 +32,7 @@ class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
         completionHandler(.allow)
     }
 
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard var request = activeRequests[dataTask] else {
             RequestLogError?("Callback for untracked task", ["url": "\(dataTask.originalRequest?.url?.absoluteString ?? "nil")"])
             return
@@ -41,7 +41,7 @@ class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
         request.taskDidReceive(data: data)
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let request = activeRequests[task] else {
             RequestLogError?("Callback for untracked task", ["url": "\(task.originalRequest?.url?.absoluteString ?? "nil")"])
             return

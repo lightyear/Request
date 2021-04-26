@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-protocol ProgressiveResponse {
+public protocol ProgressiveResponse {
     var response: URLResponse? { get set }
     var data: Data { get set }
     var progressPublisher: PassthroughSubject<(received: Int, total: Int64), Never> { get }
@@ -20,7 +20,7 @@ protocol ProgressiveResponse {
     func taskDidFail(error: Error)
 }
 
-extension ProgressiveResponse {
+public extension ProgressiveResponse {
     mutating func taskDidReceive(response: URLResponse) {
         self.response = response
     }

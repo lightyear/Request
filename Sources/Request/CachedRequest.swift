@@ -8,11 +8,11 @@
 import Foundation
 import Combine
 
-protocol CachedRequest: Request {
+public protocol CachedRequest: Request {
     func cachedResponse(context: ContextType?) -> ModelType?
 }
 
-extension CachedRequest {
+public extension CachedRequest {
     func start() -> AnyPublisher<ModelType, Error> {
         if checkCache(), let cache = cachedResponse(context: nil) {
             return Just(cache).setFailureType(to: Error.self).eraseToAnyPublisher()
@@ -36,7 +36,7 @@ extension CachedRequest {
     }
 }
 
-extension CachedRequest where ContextType: Scheduler {
+public extension CachedRequest where ContextType: Scheduler {
     func start(context: ContextType) -> AnyPublisher<ModelType, Error> {
         if checkCache(), let cache = cachedResponse(context: context) {
             return Just(cache).setFailureType(to: Error.self).eraseToAnyPublisher()
