@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import CoreData
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -202,28 +201,18 @@ extension Request {
 
     private func parse(context: ContextType?, data: Data?) -> AnyPublisher<ModelType, Error> {
         Future<ModelType, Error> { promise in
-            dispatch(context) {
-                guard let data = data else {
-                    promise(.failure(RequestError.parseError))
-                    return
-                }
+            guard let data = data else {
+                promise(.failure(RequestError.parseError))
+                return
+            }
 
-                do {
-                    let model = try parseResponse(context: context, data: data)
-                    promise(.success(model))
-                } catch {
-                    promise(.failure(error))
-                }
+            do {
+                let model = try parseResponse(context: context, data: data)
+                promise(.success(model))
+            } catch {
+                promise(.failure(error))
             }
         }.eraseToAnyPublisher()
-    }
-
-    private func dispatch(_ context: ContextType?, _ block: @escaping () -> Void) {
-        if let moc = context as? NSManagedObjectContext {
-            moc.perform(block)
-        } else {
-            block()
-        }
     }
 }
 
