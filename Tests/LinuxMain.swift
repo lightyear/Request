@@ -1,8 +1,1 @@
-import XCTest
-
-import RequestTests
-
-var tests = [XCTestCaseEntry]()
-tests += RequestTests.allTests()
-tests += CachedRequestTests.allTests()
-XCTMain(tests)
+fatalError("Please run “swift test --enable-test-discovery” instead.")

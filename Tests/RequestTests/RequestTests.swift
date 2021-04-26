@@ -27,14 +27,6 @@ private struct TestRequest: Request {
 }
 
 class RequestTests: XCTestCase {
-    static var allTests = [
-        ("testSuccess", testSuccess),
-        ("testServerFailure", testServerFailure),
-        ("testInvalidResponseType", testInvalidResponseType),
-        ("testParsingFailure", testParsingFailure),
-        ("testNetworkFailure", testNetworkFailure),
-    ]
-
     let session = TestSession()
     private var request = TestRequest()
 

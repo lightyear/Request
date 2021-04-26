@@ -31,10 +31,6 @@ private struct TestRequest: CachedRequest {
 }
 
 class CachedRequestTests: XCTestCase {
-    static var allTests = [
-        ("testReturnsCachedResponse", testReturnsCachedResponse),
-    ]
-
     let session = TestSession()
     private var request = TestRequest()
 
