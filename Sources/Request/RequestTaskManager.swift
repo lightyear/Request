@@ -24,7 +24,7 @@ open class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDeleg
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         guard var request = activeRequests[dataTask] else {
-            RequestLogError?("Callback for untracked task", ["url": "\(dataTask.originalRequest?.url?.absoluteString ?? "nil")"])
+            assertionFailure("Callback for untracked task")
             return
         }
 
@@ -34,7 +34,7 @@ open class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDeleg
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard var request = activeRequests[dataTask] else {
-            RequestLogError?("Callback for untracked task", ["url": "\(dataTask.originalRequest?.url?.absoluteString ?? "nil")"])
+            assertionFailure("Callback for untracked task")
             return
         }
 
@@ -43,7 +43,7 @@ open class RequestTaskManager: NSObject, URLSessionDelegate, URLSessionDataDeleg
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let request = activeRequests[task] else {
-            RequestLogError?("Callback for untracked task", ["url": "\(task.originalRequest?.url?.absoluteString ?? "nil")"])
+            assertionFailure("Callback for untracked task")
             return
         }
 

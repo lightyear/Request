@@ -91,6 +91,8 @@ GetUsersRequest().start()
 
 ## Customization
 
+### Declaring a default host
+
 Your types don't have to be `struct`s. If you wished, you could have a base type that defined sensible defaults for a hierarchy of requests, such as a request scheme and host:
 
 ```
@@ -117,6 +119,23 @@ Or you could override the protocol extension in the library to provide a default
 extension Request {
     var host: String { "jsonplaceholder.typicode.com" }
 }
+```
+
+### Logging
+
+The `Request` protocol declares two functions that are used for reporting some basic diagnostics: `logDebug()` and `logError()`. The former is used for request lifecycle events and the latter for non-transient network errors. Transient errors are ones that are expected to occur on real-world networks, like user cancellations, time outs, connection errors and network unavailability. These errors still fail the request, but the `logError()` function gives you a single place to log non-transient errors so you don't have to put those log statements everywhere in your app.
+
+The protocol extension implements these functions by `print()`-ing them to the debug console, but you can override them to provide different behavior:
+
+```
+extension Request {
+    func logDebug(_ message: String) {
+    }
+    
+    func logError(_ message: String, data: [String: Any]) {
+        // data includes additional details about the request that failed and
+        // the error
+    }
 ```
 
 ## Testing

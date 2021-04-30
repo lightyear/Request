@@ -9,13 +9,12 @@ import XCTest
 import Nimble
 @testable import Request
 
-private struct TestRequest: Request {
-    typealias ModelType = Int
-    typealias ContextType = Void
-
+private class TestRequest: Request {
     let method = HTTPMethod.get
     let host = "api"
     let path = "/test"
+
+    var errors = [String]()
 
     func parseResponse(context: Void?, data: Data) throws -> Int {
         if let string = String(data: data, encoding: .utf8), let value = Int(string) {
@@ -23,6 +22,10 @@ private struct TestRequest: Request {
         } else {
             throw RequestError.parseError
         }
+    }
+
+    func logError(_ message: String, data: [String: Any]) {
+        errors.append(message)
     }
 }
 
@@ -116,6 +119,24 @@ class RequestTests: XCTestCase {
                 case .failure(let error as NSError):
                     expect(error.domain) == NSURLErrorDomain
                     expect(error.code) == NSURLErrorCannotFindHost
+                    expectation.fulfill()
+                }
+            }, receiveValue: { _ in
+                fail("should not receive a value")
+            })
+        expect(publisher).toNot(beNil())
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func testNonTransientNetworkFailure() {
+        session.allow(.get, "https://api/test", return: NSError(domain: NSURLErrorDomain, code: NSURLErrorServerCertificateUntrusted, userInfo: nil))
+        let expectation = XCTestExpectation(description: "GET /test")
+        let publisher = request.start()
+            .sink(receiveCompletion: { result in
+                switch result {
+                case .finished: fail("should not succeed")
+                case .failure(_):
+                    expect(self.request.errors).toNot(beEmpty())
                     expectation.fulfill()
                 }
             }, receiveValue: { _ in

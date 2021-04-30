@@ -45,8 +45,6 @@ public extension Error {
     }
 }
 
-public var RequestLogError: ((String, _: [String: Any]?) -> Void)?
-
 public protocol Request {
     associatedtype ContextType
     associatedtype ModelType
@@ -65,6 +63,8 @@ public protocol Request {
     var successStatusCodes: Set<Int> { get }
 
     func parseResponse(context: ContextType?, data: Data) throws -> ModelType
+    func logDebug(_ message: String)
+    func logError(_ message: String, data: [String: Any])
 }
 
 public protocol RequestSession {
@@ -121,7 +121,7 @@ public extension Request {
     private func buildRequest() -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        print("⤴️ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?")")
+        logDebug("⤴️ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?")")
         if let body = body {
             request.setValue(contentType, forHTTPHeaderField: "Content-Type")
             request.httpBody = body
@@ -168,18 +168,18 @@ public extension Request {
         let elapsed = Date().timeIntervalSince(startedAt)
         let bytes = result.data?.count ?? 0
         if successStatusCodes.contains(result.response.statusCode) {
-            print("⤵️ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
+            logDebug("⤵️ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
         } else {
-            print("❌ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
-            RequestLogError?("\(Self.self) \(result.response.statusCode)", ["url": request.url?.absoluteString ?? "?", "requestBody": String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "<not UTF-8>", "response": String(data: result.data ?? Data(), encoding: .utf8) ?? "<not UTF-8>"])
+            logDebug("❌ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
+            logError("\(Self.self) \(result.response.statusCode)", data: ["url": request.url?.absoluteString ?? "?", "requestBody": String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "<not UTF-8>", "response": String(data: result.data ?? Data(), encoding: .utf8) ?? "<not UTF-8>"])
         }
     }
 
     private func logFailure(request: URLRequest, completion: Subscribers.Completion<Error>) {
         guard case let .failure(error) = completion else { return }
-        print("❌ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") \(error)")
+        logDebug("❌ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") \(error)")
         if !error.transientNetworkError {
-            RequestLogError?("\(Self.self) network error", ["error": "\(error)", "url": request.url?.absoluteString ?? "?"])
+            logError("\(Self.self) network error", data: ["error": "\(error)", "url": request.url?.absoluteString ?? "?"])
         }
     }
 
@@ -213,6 +213,14 @@ public extension Request {
             }
         }.eraseToAnyPublisher()
     }
+
+    func logDebug(_ message: String) {
+        print(message)
+    }
+
+    func logError(_ message: String, data: [String: Any]) {
+        print("\(message) \(data)")
+    }
 }
 
 public extension Request where ContextType: Scheduler {
@@ -232,7 +240,7 @@ public extension Request {
         let data = try encoder.encode(object)
 
         if let string = String(data: data, encoding: .utf8) {
-            print(string)
+            logDebug(string)
         }
 
         return data
@@ -249,7 +257,7 @@ public extension Request {
     func decode<T: Decodable>(_ jsonType: T.Type, from data: Data) throws -> T {
 #if DEBUG
         if let string = String(data: data, encoding: .utf8) {
-            print(string)
+            logDebug(string)
         }
 #endif
         let decoder = JSONDecoder()
