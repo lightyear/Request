@@ -62,6 +62,7 @@ public protocol Request {
     var successStatusCodes: Set<Int> { get }
 
     func parseResponse(context: ContextType?, data: Data) throws -> ModelType
+    func parseError(status: Int, data: Data?) -> Error
     func logDebug(_ message: String)
     func logError(_ message: String, data: [String: Any])
 }
@@ -185,9 +186,13 @@ public extension Request {
 
     private func validateStatus(result: (response: HTTPURLResponse, data: Data?)) throws -> (response: HTTPURLResponse, data: Data?) {
         if !successStatusCodes.contains(result.response.statusCode) {
-            throw RequestError.serverFailure(result.response.statusCode)
+            throw parseError(status: result.response.statusCode, data: result.data)
         }
         return result
+    }
+
+    func parseError(status: Int, data: Data?) -> Error {
+        RequestError.serverFailure(status)
     }
 
     private func validateContentType(result: (response: HTTPURLResponse, data: Data?)) throws -> (response: HTTPURLResponse, data: Data?) {

@@ -28,6 +28,18 @@ private class TestRequest: Request {
     }
 }
 
+private class CustomErrorRequest: Request {
+    let baseURL = URL(string: "https://api")!
+    let path = "/test"
+
+    func parseResponse(context: Void?, data: Data) throws {
+    }
+
+    func parseError(status: Int, data: Data?) -> Error {
+        NSError(domain: "TestDomain", code: status, userInfo: ["body": data!])
+    }
+}
+
 class RequestTests: XCTestCase {
     let session = TestSession()
     private var request = TestRequest()
@@ -64,6 +76,26 @@ class RequestTests: XCTestCase {
                     expect(status) == 500
                     expectation.fulfill()
                 case .failure: fail("failed with the wrong error type")
+                }
+            }, receiveValue: { _ in
+                fail("should not receive a value")
+            })
+        expect(publisher).toNot(beNil())
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func testCustomErrorHandler() {
+        session.allow(.get, "https://api/test", return: 500, body: "{}")
+        let expectation = XCTestExpectation(description: "GET /test")
+        let publisher = CustomErrorRequest().start()
+            .sink(receiveCompletion: { result in
+                switch result {
+                case .finished: fail("should not succeed")
+                case .failure(let error as NSError):
+                    expect(error.domain) == "TestDomain"
+                    expect(error.code) == 500
+                    expect(error.userInfo["body"] as? Data) == "{}".data(using: .utf8)
+                    expectation.fulfill()
                 }
             }, receiveValue: { _ in
                 fail("should not receive a value")
