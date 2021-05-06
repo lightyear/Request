@@ -91,21 +91,17 @@ GetUsersRequest().start()
 
 ## Customization
 
-### Declaring a default host
+### Declaring a base URL
 
-Your types don't have to be `struct`s. If you wished, you could have a base type that defined sensible defaults for a hierarchy of requests, such as a request scheme and host:
+Your types don't have to be `struct`s. If you wished, you could have a base type that defined sensible defaults for a hierarchy of requests, such as a base URL:
 
 ```
 class BaseAPI {
-    let host = "jsonplaceholder.typicode.com"
+    let baseURL = URL(string: "https://jsonplaceholder.typicode.com/"
 }
 
 class GetUsersRequest: BaseAPI, Request {
-    typealias ModelType = [User]
-    typealias ContextType = Void
-
-    let method = HTTPMethod.get
-    let path = "/users"
+    let path = "users"
 
     func parseResponse(context: Void?, data: Data) throws -> [User] {
         try decode([User].self, from: data)
@@ -113,11 +109,21 @@ class GetUsersRequest: BaseAPI, Request {
 }
 ```
 
-Or you could override the protocol extension in the library to provide a default for any types that don't provide their own value for a property:
+Or you could introduce your own small protocol to provide a default:
 
 ```
-extension Request {
-    var host: String { "jsonplaceholder.typicode.com" }
+protocol JSONPlaceholderRequest: Request {}
+
+extension JSONPlaceholderRequest {
+    var baseURL = URL(string: "https://jsonplaceholder.typicode.com/" }
+}
+
+struct GetUsersRequest: JSONPlaceholderRequest {
+    let path = "users"
+
+    func parseResponse(context: Void?, data: Data) throws -> [User] {
+        try decode([User].self, from: data)
+    }
 }
 ```
 

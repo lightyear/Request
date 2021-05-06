@@ -10,8 +10,7 @@ import Nimble
 @testable import Request
 
 private class TestRequest: Request {
-    let method = HTTPMethod.get
-    let host = "api"
+    let baseURL = URL(string: "https://api")!
     let path = "/test"
 
     var errors = [String]()
@@ -128,7 +127,7 @@ class RequestTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    func testNonTransientNetworkFailure() {
+    func testNonTransientNetworkFailureIsLogged() {
         session.allow(.get, "https://api/test", return: NSError(domain: NSURLErrorDomain, code: NSURLErrorServerCertificateUntrusted, userInfo: nil))
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()

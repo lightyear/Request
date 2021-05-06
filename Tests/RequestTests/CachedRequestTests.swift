@@ -14,11 +14,7 @@ private enum CacheError: Error {
 }
 
 private struct TestRequest: CachedRequest {
-    typealias ModelType = Int
-    typealias ContextType = Void
-
-    let method = HTTPMethod.get
-    let host = "api"
+    let baseURL = URL(string: "https://api")!
     let path = "/test"
 
     func cachedResponse(context: Void?) -> Int? {

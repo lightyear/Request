@@ -50,9 +50,8 @@ public protocol Request {
     associatedtype ModelType
 
     var method: HTTPMethod { get }
+    var baseURL: URL { get }
     var url: URL { get }
-    var scheme: String { get }
-    var host: String { get }
     var path: String { get }
     var queryItems: [URLQueryItem] { get }
     var contentType: String { get }
@@ -76,7 +75,6 @@ extension URLSession: RequestSession {}
 
 public extension Request {
     var method: HTTPMethod { .get }
-    var scheme: String { "https" }
     var queryItems: [URLQueryItem] { [] }
     var contentType: String { "application/json" }
     var body: Data? { nil }
@@ -88,11 +86,9 @@ public extension Request {
 
     var url: URL {
         var urlComponents = URLComponents()
-        urlComponents.scheme = scheme
-        urlComponents.host = host
         urlComponents.path = path
         urlComponents.queryItems = queryItems.isEmpty ? nil : queryItems
-        return urlComponents.url!
+        return urlComponents.url(relativeTo: baseURL)!
     }
 
     var headers: [String: String] { ["Accept": "application/json"] }
