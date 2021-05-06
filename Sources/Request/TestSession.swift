@@ -30,7 +30,7 @@ open class TestSession: RequestSession {
 
     public init() {
     }
-    
+
     public func reset() {
         stubRequests = [:]
     }

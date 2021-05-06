@@ -171,7 +171,11 @@ public extension Request {
             logDebug("⤵️ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
         } else {
             logDebug("❌ \(request.httpMethod?.uppercased() ?? "") \(request.url?.absoluteString ?? "?") [\(result.response.statusCode) | \(bytes) bytes in \(String(format: "%.3fs", elapsed))]")
-            logError("\(Self.self) \(result.response.statusCode)", data: ["url": request.url?.absoluteString ?? "?", "requestBody": String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "<not UTF-8>", "response": String(data: result.data ?? Data(), encoding: .utf8) ?? "<not UTF-8>"])
+            logError("\(Self.self) \(result.response.statusCode)",
+                     data: ["url": request.url?.absoluteString ?? "?",
+                            "requestBody": String(data: request.httpBody ?? Data(), encoding: .utf8) ?? "<not UTF-8>",
+                            "response": String(data: result.data ?? Data(), encoding: .utf8) ?? "<not UTF-8>"
+                     ])
         }
     }
 
@@ -247,7 +251,7 @@ public extension Request {
     }
 }
 
-fileprivate let iso8601WithMilliseconds: ISO8601DateFormatter = {
+private let iso8601WithMilliseconds: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return formatter
@@ -261,14 +265,14 @@ public extension Request {
         }
 #endif
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom({
+        decoder.dateDecodingStrategy = .custom {
             let container = try $0.singleValueContainer()
             let string = try container.decode(String.self)
             if let date = iso8601WithMilliseconds.date(from: string) {
                 return date
             }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "“\(string)” does not appear to be a valid ISO8601 date")
-        })
+        }
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let object = try decoder.decode(T.self, from: data)
 
