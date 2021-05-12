@@ -88,7 +88,15 @@ public extension Request {
     var url: URL {
         var urlComponents = URLComponents()
         urlComponents.path = path
-        urlComponents.queryItems = queryItems.isEmpty ? nil : queryItems
+
+        if !queryItems.isEmpty {
+            var querySafe = CharacterSet.urlQueryAllowed
+            querySafe.remove("+")
+            urlComponents.percentEncodedQuery = queryItems.map {
+                "\($0.name.addingPercentEncoding(withAllowedCharacters: querySafe)!)=\($0.value?.addingPercentEncoding(withAllowedCharacters: querySafe) ?? "")"
+            }.joined(separator: "&")
+        }
+
         return urlComponents.url(relativeTo: baseURL)!
     }
 

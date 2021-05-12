@@ -47,6 +47,12 @@ class ExtensionTests: XCTestCase {
 
         request = TestRequest(baseURL: URL(string: "https://example.test")!, path: "foo", queryItems: [URLQueryItem(name: "q", value: "value")])
         expect(request.url.absoluteString) == "https://example.test/foo?q=value"
+
+        request = TestRequest(baseURL: URL(string: "https://example.test")!, path: "foo", queryItems: [URLQueryItem(name: "q", value: "value+value")])
+        expect(request.url.absoluteString) == "https://example.test/foo?q=value%2Bvalue"
+
+        request = TestRequest(baseURL: URL(string: "https://example.test")!, path: "foo", queryItems: [URLQueryItem(name: "q", value: "value value")])
+        expect(request.url.absoluteString) == "https://example.test/foo?q=value%20value"
     }
 
     func testDerivedProtocol() {
