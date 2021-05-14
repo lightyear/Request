@@ -8,9 +8,32 @@
 import Foundation
 
 open class TestSession: RequestSession {
-    struct Request: Hashable {
-        let method: HTTPMethod
-        let url: String
+    public enum Request {
+        case get(String, headers: [String: String] = [:])
+        case post(String, body: Data = Data(), headers: [String: String] = [:])
+        case put(String, body: Data = Data(), headers: [String: String] = [:])
+        case delete(String, headers: [String: String] = [:])
+
+        func matches(_ urlRequest: URLRequest) -> Bool {
+            switch self {
+            case .get(let url, let headers):
+                return urlRequest.httpMethod?.uppercased() == "GET"
+                    && urlRequest.url?.absoluteString == url
+                    && headers.allSatisfy { urlRequest.allHTTPHeaderFields?[$0.key] == $0.value }
+            case .post(let url, _, let headers):
+                return urlRequest.httpMethod?.uppercased() == "POST"
+                    && urlRequest.url?.absoluteString == url
+                    && headers.allSatisfy { urlRequest.allHTTPHeaderFields?[$0.key] == $0.value }
+            case .put(let url, _, let headers):
+                return urlRequest.httpMethod?.uppercased() == "PUT"
+                    && urlRequest.url?.absoluteString == url
+                    && headers.allSatisfy { urlRequest.allHTTPHeaderFields?[$0.key] == $0.value }
+            case .delete(let url, let headers):
+                return urlRequest.httpMethod?.uppercased() == "DELETE"
+                    && urlRequest.url?.absoluteString == url
+                    && headers.allSatisfy { urlRequest.allHTTPHeaderFields?[$0.key] == $0.value }
+            }
+        }
     }
 
     enum Response {
@@ -26,36 +49,39 @@ open class TestSession: RequestSession {
         case notAllowed(String)
     }
 
-    private var stubRequests = [Request: Response]()
+    private var stubRequests = [(request: Request, response: Response)]()
 
     public init() {
     }
 
     public func reset() {
-        stubRequests = [:]
+        stubRequests = []
     }
 
-    public func allow(_ method: HTTPMethod, _ url: String, return status: Int, headers: [String: String] = ["Content-Type": "application/json"], body: String = "") {
-        stubRequests[Request(method: method, url: url)] = Response(status: status, headers: headers, body: body)
+    public func allow(_ request: Request, return status: Int, headers: [String: String] = ["Content-Type": "application/json"], body: String = "") {
+        stubRequests.append((request, Response(status: status, headers: headers, body: body)))
     }
 
-    public func allow(_ method: HTTPMethod, _ url: String, return error: Error) {
-        stubRequests[Request(method: method, url: url)] = .networkError(error)
+    public func allow(_ request: Request, return error: Error) {
+        stubRequests.append((request, .networkError(error)))
     }
 
     public func dataTask(with request: URLRequest) -> URLSessionDataTask {
         fatalError("not implemented")
     }
 
-    public func dataTask(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
-        let req = Request(method: HTTPMethod(rawValue: request.httpMethod!)!, url: request.url!.absoluteString)
-        if case .http(let status, let headers, let body) = stubRequests[req] {
-            let httpResponse = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "1.1", headerFields: headers.merging(["Content-Length": "\(body.count)"]) { _, other in other })
+    public func dataTask(with urlRequest: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
+        guard let stub = stubRequests.first(where: { $0.request.matches(urlRequest) })
+        else {
+            return TestDataTask { completionHandler(nil, nil, SessionError.notAllowed("\(urlRequest.httpMethod ?? "unknown-method") \(urlRequest.url?.absoluteString ?? "unknown-url") is not allowed here")) }
+        }
+
+        switch stub.response {
+        case .http(let status, let headers, let body):
+            let httpResponse = HTTPURLResponse(url: urlRequest.url!, statusCode: status, httpVersion: "1.1", headerFields: headers.merging(["Content-Length": "\(body.count)"]) { _, other in other })
             return TestDataTask { completionHandler(body, httpResponse, nil) }
-        } else if case .networkError(let error) = stubRequests[req] {
+        case .networkError(let error):
             return TestDataTask { completionHandler(nil, nil, error) }
-        } else {
-            return TestDataTask { completionHandler(nil, nil, SessionError.notAllowed("\(req.method) \(req.url) is not allowed here")) }
         }
     }
 }

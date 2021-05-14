@@ -50,7 +50,7 @@ class RequestTests: XCTestCase {
     }
 
     func testSuccess() {
-        session.allow(.get, "https://api/test", return: 200, body: "1")
+        session.allow(.get("https://api/test"), return: 200, body: "1")
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
@@ -66,7 +66,7 @@ class RequestTests: XCTestCase {
     }
 
     func testServerFailure() {
-        session.allow(.get, "https://api/test", return: 500, body: "1")
+        session.allow(.get("https://api/test"), return: 500, body: "1")
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
@@ -85,7 +85,7 @@ class RequestTests: XCTestCase {
     }
 
     func testCustomErrorHandler() {
-        session.allow(.get, "https://api/test", return: 500, body: "{}")
+        session.allow(.get("https://api/test"), return: 500, body: "{}")
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = CustomErrorRequest().start()
             .sink(receiveCompletion: { result in
@@ -105,7 +105,7 @@ class RequestTests: XCTestCase {
     }
 
     func testInvalidResponseType() {
-        session.allow(.get, "https://api/test", return: 200, headers: ["Content-Type": "text/html"], body: "a")
+        session.allow(.get("https://api/test"), return: 200, headers: ["Content-Type": "text/html"], body: "a")
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
@@ -123,7 +123,7 @@ class RequestTests: XCTestCase {
     }
 
     func testParsingFailure() {
-        session.allow(.get, "https://api/test", return: 200, body: "a")
+        session.allow(.get("https://api/test"), return: 200, body: "a")
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
@@ -141,7 +141,7 @@ class RequestTests: XCTestCase {
     }
 
     func testNetworkFailure() {
-        session.allow(.get, "https://api/test", return: NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotFindHost, userInfo: nil))
+        session.allow(.get("https://api/test"), return: NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotFindHost, userInfo: nil))
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
@@ -160,7 +160,7 @@ class RequestTests: XCTestCase {
     }
 
     func testNonTransientNetworkFailureIsLogged() {
-        session.allow(.get, "https://api/test", return: NSError(domain: NSURLErrorDomain, code: NSURLErrorServerCertificateUntrusted, userInfo: nil))
+        session.allow(.get("https://api/test"), return: NSError(domain: NSURLErrorDomain, code: NSURLErrorServerCertificateUntrusted, userInfo: nil))
         let expectation = XCTestExpectation(description: "GET /test")
         let publisher = request.start()
             .sink(receiveCompletion: { result in
