@@ -61,6 +61,9 @@ public protocol Request {
     var expectedResponseType: String? { get }
     var successStatusCodes: Set<Int> { get }
 
+    var decoder: JSONDecoder { get }
+    var encoder: JSONEncoder { get }
+
     func parseResponse(context: ContextType?, data: Data) throws -> ModelType
     func parseError(status: Int, data: Data?) -> Error
     func logDebug(_ message: String)
@@ -243,13 +246,17 @@ public extension Request where ContextType: Scheduler {
 }
 
 public extension Request {
-    func encode<T: Encodable>(_ object: T) throws -> Data {
+    var encoder: JSONEncoder {
         let encoder = JSONEncoder()
 #if DEBUG
         encoder.outputFormatting = .prettyPrinted
 #endif
         encoder.dateEncodingStrategy = .iso8601
         encoder.keyEncodingStrategy = .convertToSnakeCase
+        return encoder
+    }
+
+    func encode<T: Encodable>(_ object: T) throws -> Data {
         let data = try encoder.encode(object)
 
         if let string = String(data: data, encoding: .utf8) {
@@ -267,12 +274,7 @@ private let iso8601WithMilliseconds: ISO8601DateFormatter = {
 }()
 
 public extension Request {
-    func decode<T: Decodable>(_ jsonType: T.Type, from data: Data) throws -> T {
-#if DEBUG
-        if let string = String(data: data, encoding: .utf8) {
-            logDebug(string)
-        }
-#endif
+    var decoder: JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom {
             let container = try $0.singleValueContainer()
@@ -283,8 +285,16 @@ public extension Request {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "“\(string)” does not appear to be a valid ISO8601 date")
         }
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let object = try decoder.decode(T.self, from: data)
+        return decoder
+    }
 
-        return object
+    func decode<T: Decodable>(_ jsonType: T.Type, from data: Data) throws -> T {
+#if DEBUG
+        if let string = String(data: data, encoding: .utf8) {
+            logDebug(string)
+        }
+#endif
+
+        return try decoder.decode(T.self, from: data)
     }
 }
