@@ -9,37 +9,6 @@ import XCTest
 import Nimble
 @testable import Request
 
-private class TestRequest: Request {
-    let baseURL = URL(string: "https://api")!
-    let path = "/test"
-
-    var errors = [String]()
-
-    func parseResponse(context: Void?, data: Data) throws -> Int {
-        if let string = String(data: data, encoding: .utf8), let value = Int(string) {
-            return value
-        } else {
-            throw RequestError.parseError
-        }
-    }
-
-    func logError(_ message: String, data: [String: Any]) {
-        errors.append(message)
-    }
-}
-
-private class CustomErrorRequest: Request {
-    let baseURL = URL(string: "https://api")!
-    let path = "/test"
-
-    func parseResponse(context: Void?, data: Data) throws {
-    }
-
-    func parseError(status: Int, data: Data?) -> Error {
-        NSError(domain: "TestDomain", code: status, userInfo: ["body": data!])
-    }
-}
-
 class RequestTests: XCTestCase {
     let session = TestSession()
     private var request = TestRequest()
@@ -122,6 +91,22 @@ class RequestTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    func testEmptyResponse() {
+        session.allow(.get("https://api/test"), return: 204, headers: ["Content-Length": "0"], body: "")
+        let expectation = XCTestExpectation(description: "GET /test")
+        let publisher = EmptyResponseRequest().start()
+            .sink(receiveCompletion: { result in
+                switch result {
+                case .finished: expectation.fulfill()
+                case .failure:  fail("should not fail")
+                }
+            }, receiveValue: {
+                expect($0) == 1
+            })
+        expect(publisher).toNot(beNil())
+        wait(for: [expectation], timeout: 1)
+    }
+
     func testParsingFailure() {
         session.allow(.get("https://api/test"), return: 200, body: "a")
         let expectation = XCTestExpectation(description: "GET /test")
@@ -175,5 +160,45 @@ class RequestTests: XCTestCase {
             })
         expect(publisher).toNot(beNil())
         wait(for: [expectation], timeout: 1)
+    }
+}
+
+private class TestRequest: Request {
+    let baseURL = URL(string: "https://api")!
+    let path = "/test"
+
+    var errors = [String]()
+
+    func parseResponse(context: Void?, data: Data) throws -> Int {
+        if let string = String(data: data, encoding: .utf8), let value = Int(string) {
+            return value
+        } else {
+            throw RequestError.parseError
+        }
+    }
+
+    func logError(_ message: String, data: [String: Any]) {
+        errors.append(message)
+    }
+}
+
+private class EmptyResponseRequest: Request {
+    let baseURL = URL(string: "https://api")!
+    let path = "/test"
+
+    func parseResponse(context: Void?, data: Data) throws -> Int {
+        1
+    }
+}
+
+private class CustomErrorRequest: Request {
+    let baseURL = URL(string: "https://api")!
+    let path = "/test"
+
+    func parseResponse(context: Void?, data: Data) throws {
+    }
+
+    func parseError(status: Int, data: Data?) -> Error {
+        NSError(domain: "TestDomain", code: status, userInfo: ["body": data!])
     }
 }

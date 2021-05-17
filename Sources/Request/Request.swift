@@ -122,7 +122,7 @@ public extension Request {
             .tryMap { try validateStatus(result: $0) }
             .tryMap { try validateContentType(result: $0) }
             .receive(on: scheduler)
-            .flatMap { parse(context: context, data: $0.data) }
+            .flatMap { parse(response: $0.response, context: context, data: $0.data) }
             .eraseToAnyPublisher()
     }
 
@@ -207,6 +207,7 @@ public extension Request {
     }
 
     private func validateContentType(result: (response: HTTPURLResponse, data: Data?)) throws -> (response: HTTPURLResponse, data: Data?) {
+        guard result.data?.isEmpty == false else { return result }
         guard let expectedType = self.expectedResponseType else { return result }
         guard let responseType = result.response.value(forHTTPHeaderField: "Content-Type"),
               responseType == expectedType || responseType.hasPrefix("\(expectedType); charset")
@@ -214,16 +215,17 @@ public extension Request {
         return result
     }
 
-    private func parse(context: ContextType?, data: Data?) -> AnyPublisher<ModelType, Error> {
+    private func parse(response: HTTPURLResponse, context: ContextType?, data: Data?) -> AnyPublisher<ModelType, Error> {
         Future<ModelType, Error> { promise in
-            guard let data = data else {
-                promise(.failure(RequestError.parseError))
-                return
-            }
-
+            let contentLength = response.value(forHTTPHeaderField: "Content-Length")
             do {
-                let model = try parseResponse(context: context, data: data)
-                promise(.success(model))
+                if let data = data {
+                    promise(.success(try parseResponse(context: context, data: data)))
+                } else if contentLength == "0" {
+                    promise(.success(try parseResponse(context: context, data: Data())))
+                } else {
+                    promise(.failure(RequestError.parseError))
+                }
             } catch {
                 promise(.failure(error))
             }
